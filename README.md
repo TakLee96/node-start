@@ -13,6 +13,8 @@ Note:
 - please modify *ns-config.js* and *package.json*, handle git and create *favicon.ico* manually.
 - there is a user login system that comes with this project; you can refer to it to learn how `ns new` command generates the proper files.
 
+Note: to install, run `npm install -g node-start`
+
 Example:
 
 - `ns init node-app` will create the folder node-app and generate the template files
