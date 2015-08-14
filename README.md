@@ -8,6 +8,7 @@ Usage:
 - `ns new route <route-name>` creates a new route with the corresponding controller
 
 Note: please manually modify package.json and handle git.
+Note: to install, run `npm install -g node-start`
 
 Example:
 
