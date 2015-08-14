@@ -101,7 +101,7 @@ var indexhtml = multiline(function(){/*
         <li><b>ns new model [model-name]</b> creates a new mongoose schema</li>
         <li><b>ns new route [route-name]</b> creates a new route with the corresponding controller</li>
     </ul>
-    <div>For more, please visit <a href='https://github.com/TakLee96/node-starter' target='_blank'>here</a></div>
+    <div>For more, please visit <a href='https://github.com/TakLee96/node-start' target='_blank'>here</a></div>
     <script type='text/javascript' src='js/main.js'></script>
 </body>
 </html>
