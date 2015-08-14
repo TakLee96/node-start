@@ -9,11 +9,10 @@ Usage:
 
 Note:
 
+- to install, run `npm install -g node-start`
 - the generator assumes the usage of [jade](http://jade-lang.com) as the template engine
 - please modify *ns-config.js* and *package.json*, handle git and create *favicon.ico* manually.
 - there is a user login system that comes with this project; you can refer to it to learn how `ns new` command generates the proper files.
-
-Note: to install, run `npm install -g node-start`
 
 Example:
 
