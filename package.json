@@ -1,0 +1,31 @@
+{
+  "name": "node-starter",
+  "version": "1.0.0",
+  "description": "A Node.js and Express.js application starter (cli tool) that can generate some fundamental code automatically for you.",
+  "main": "app.js",
+  "scripts": {
+    "test": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TakLee96/node-starter.git"
+  },
+  "keywords": [
+    "cli",
+    "tool",
+    "nodejs",
+    "expressjs",
+    "application",
+    "starter",
+    "automatic"
+  ],
+  "author": "TakLee96",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TakLee96/node-starter/issues"
+  },
+  "bin": {
+    "ns": "app.js"
+  },
+  "homepage": "https://github.com/TakLee96/node-starter#readme"
+}
