@@ -169,7 +169,7 @@ var packagejson = multiline(function(){/*
 
 
 var print_help = function () {
-    console.log("Usage: ns <command-name>");
+    console.log("[ns] Usage: ns <command-name>");
     console.log("");
     console.log("    ns init <app-name>");
     console.log("    ns new model <model-name>");
@@ -205,16 +205,19 @@ var init = function (app_name) {
     fs.writeFileSync(app_dir + "/public/css/main.css", "");
     fs.mkdirSync(app_dir + "/public/js");
     fs.writeFileSync(app_dir + "/public/js/main.js", "");
+
+    console.log("[ns] initialized successfully! please cd into " + app_name + " and do npm install first");
 };
 
 var new_model = function (model_name) {
     var models = require(root_dir + "/models/models");
     if (models.indexOf(model_name) != -1) {
-        console.error(model_name + " model already exists!");
+        console.error("[ns] " + model_name + " model already exists!");
     } else {
         models.push(model_name);
         fs.writeFileSync(root_dir + "/models/" + model_name + ".js", modeltpljs.replace(/__name__/g, model_name));
         fs.writeFileSync(root_dir + "/models/models.json", JSON.stringify(models));
+        console.log("[ns] " + model_name + " model generated successfully!");
     }
 };
 
@@ -222,15 +225,16 @@ var new_route = function (route_name) {
     var routes = require(root_dir + "/routes/routes");
     var controllers = require(root_dir + "/controllers/controllers");
     if (routes.indexOf(route_name) != -1) {
-        console.error(route_name + " route already exists!");
+        console.error("[ns] " + route_name + " route already exists!");
     } else if (controllers.indexOf(route_name) != -1) {
-        console.error(route_name + " controller already exists!");
+        console.error("[ns] " + route_name + " controller already exists!");
     } else {
         routes.push(route_name); controllers.push(route_name);
         fs.writeFileSync(root_dir + "/routes/" + route_name + ".js", routetpljs);
         fs.writeFileSync(root_dir + "/routes/routes.json", JSON.stringify(routes));
         fs.writeFileSync(root_dir + "/controllers/" + route_name + ".js", controllertpljs);
         fs.writeFileSync(root_dir + "/controllers/controllers.json", JSON.stringify(controllers));
+        console.log("[ns] " + route_name + " route and controller generated successfully!");
     }
 };
 
