@@ -1,6 +1,6 @@
 {
   "name": "node-start",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Node.js and Express.js application starter (cli tool) that can generate some fundamental code automatically for you.",
   "main": "app.js",
   "scripts": {

@@ -38,27 +38,53 @@ var appjs = multiline(function(){/*
 var express = require('express');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
+var session = require('express-session');
+var MongoStore = require('connect-mongo')(session);
+var logger = require('./utils/logger');
+var config = require('./ns-config');
 
-var app = express();
-
-app.use(express.static('public'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-
-// Configure more middlewares below
-// app.use(...)
-// Configure more middlewares above
-
-require('./routes')(app);
-
-mongoose.connect(process.env.MONGODB || 'mongodb://localhost:27017/test', function (err) {
+mongoose.connect(config.mongodb, function (err) {
     if (err) {
         console.error('[MongoDB] failed to connect to mongodb');
     } else {
         console.log('[MongoDB] successfully connected to mongodb');
     }
-    app.listen(process.env.PORT || '8080', process.env.IP || '127.0.0.1', function () {
-        console.log('[Server] listening on port %s', this.address().port);
+
+    var app = express();
+    app.set('view engine', 'jade');
+
+    app.use(logger());
+    app.use(express.static('public'));
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(session({
+        secret: config.name,
+        store: new MongoStore({mongooseConnection: mongoose.connection}),
+        ttl: 60 * 60,  // 1 hour (default is 14 days)
+        resave: true,
+        saveUninitialized: true
+    }));
+    app.use(function (req, res, next) {
+        res.locals.session = req.session;
+        next();
+    });
+
+    // Configure more middlewares below
+    // app.use(...)
+    // Configure more middlewares above
+
+    app.use(function (req, res, next) {
+        res.status(404).end("Resource for " + req.method + " " + req.url + " not found");
+    });
+    app.use(function (err, req, res, next) {
+        console.error(err.stack);
+        res.status(500).end("Oops... The programmer screws up something...");
+    });
+
+    require('./routes')(app);
+
+    app.listen(config.port, config.ip, function () {
+        console.log('[Server] listening on port %s\n', this.address().port);
     });
 });
 */});
@@ -85,26 +111,6 @@ module.exports = function (app) {
         require('./' + route)(app);
     });
 };
-*/});
-
-var indexhtml = multiline(function(){/*
-<!DOCTYPE html>
-<html>
-<head>
-    <title>NS Set Up</title>
-    <link rel='stylesheet' type='text/css' href='css/main.css'>
-</head>
-<body>
-    <h1>NS Set Up Success</h1>
-    <ul>
-        <li><b>ns init [app-name]</b> initializes the app with default package.json and file structure</li>
-        <li><b>ns new model [model-name]</b> creates a new mongoose schema</li>
-        <li><b>ns new route [route-name]</b> creates a new route with the corresponding controller</li>
-    </ul>
-    <div>For more, please visit <a href='https://github.com/TakLee96/node-start' target='_blank'>here</a></div>
-    <script type='text/javascript' src='js/main.js'></script>
-</body>
-</html>
 */});
 
 var modeltpljs = multiline(function(){/*
@@ -162,11 +168,271 @@ var packagejson = multiline(function(){/*
   "dependencies": {
     "body-parser": "^1.13.3",
     "express": "^4.13.3",
-    "mongoose": "^4.1.2"
+    "mongoose": "^4.1.2",
+    "jade": "^1.11.0",
+    "express-session": "^1.11.3",
+    "connect-mongo": "^0.8.2",
+    "email-validator": "^1.0.1"
   }
 }
 */});
 
+var loggerjs = multiline(function(){/*
+var logger = function (req, res, next) {
+    var start = +new Date();
+    var count = ++logger.count;
+    console.log("[Server] #%s %s %s", count, req.method, req.url);
+    res.on('finish', function () {
+        var end = +new Date();
+        console.log("         #%s complete in %sms", count, end-start);
+    });
+    next();
+};
+
+logger.count = 0;
+
+module.exports = function () {
+    return logger;
+};
+*/});
+
+var hashjs = multiline(function(){/*
+var crypto = require('crypto');
+
+module.exports = function (pass, salt) {
+    var hash = crypto.createHash('sha512');
+    hash.update(pass);
+    hash.update(salt);
+    return hash.digest('base64');
+}
+*/})
+
+var nsconfigjs = multiline(function(){/*
+module.exports = {
+    name: '__name__',
+    port: process.env.PORT || 8080,
+    ip: process.env.IP || '127.0.0.1',
+    mongodb: process.env.MONGODB || 'mongodb://localhost:27017/__name__'
+};
+*/});
+
+var layoutjade = multiline(function(){/*
+doctype html
+
+html
+    head
+        meta(charset="utf8")
+        title= pageTitle
+        style
+            include stylesheets/main.css
+    body
+        header
+            h1= pageTitle
+        section#status
+            ul
+                if session.isLoggedIn
+                    li
+                        a(href="/logout") Logout
+                else
+                    li
+                        a(href="/login") Login
+                    li
+                        a(href="/signup") Signup
+        section#content
+            block content
+        script(src="http://code.jquery.com/jquery-2.1.4.min.js")
+        script
+            include javascripts/main.js
+*/});
+
+var homejade = multiline(function(){/*
+extends layout
+
+block content
+    if session.isLoggedIn
+        p You are logged in! Welcome #{session.user.username}!
+    else
+        p You are not logged in! Welcome guest!
+*/});
+
+var loginjade = multiline(function(){/*
+extends layout
+
+block content
+    form(method='POST', action='/login')
+        h2 Log In
+        if empty
+            .error Empty Username/Password!
+        if incorrect
+            .error Wrong Password!
+        if notExists
+            .error User does not exists!
+        ul
+            li
+                label(for='username') Username
+                input#username(name='username', required=true)
+            li
+                label(for='password') Password
+                input#password(name='password', required=true)
+        input(type='submit', value='Log In')
+*/});
+
+var signupjade = multiline(function(){/*
+extends layout
+
+block content
+    form(method='POST', action='/signup')
+        h2 Sign Up
+        if exists
+            .error
+                | That user already exists. Are you trying to 
+                a(href='/login') log in
+                | ?
+        if empty
+            .error Please complete all the required fields
+        if invalid
+            .error Invalid email address
+        ul
+            li
+                label(for='username') Username
+                input#username(name='username', required=true)
+            li
+                label(for='email') Email
+                input#email(name='email', required=true)
+            li
+                label(for='password') Password
+                input#password(name='password', type='password', required=true)
+        input(type='submit', value='Sign Up')
+*/});
+
+var maincss = multiline(function(){/*
+.error {
+    color: red;
+}
+*/});
+
+var mainjs = multiline(function(){/*
+$(document).ready(function () {
+    // start your code here
+});
+*/});
+
+var usercontrollerjs = multiline(function(){/*
+var validator = require('email-validator');
+var crypto = require('crypto');
+var hash = require('../utils/hash');
+var User = require('../models').User;
+
+exports.login = function (req, res, next) {
+    if (req.body && req.body.username && req.body.password) {
+        User.findOne({'_id.username': req.body.username}, function (err, user) {
+            if (err) {
+                next(err);
+            } else if (user) {
+                if (user.hash !== hash(req.body.password, user.salt)) {
+                    res.render('login', {incorrect: true});
+                } else {
+                    res.session.isLoggedIn = true;
+                    res.session.user = {
+                        username: user.username,
+                        email: user.email
+                    };
+                    res.redirect('/');
+                }
+            } else {
+                res.render('login', {notExists: true});
+            }
+        });
+    } else {
+        res.render('login', {empty: true});
+    }
+};
+
+exports.signup = function (req, res, next) {
+    if (req.body && req.body.username && req.body.email && req.body.password) {
+        User.findOne({'_id.username': req.body.username}, function (err, user) {
+            if (err) {
+                next(err)
+            } else if (user) {
+                res.render('signup', {exists: true});
+            } else if (validator.validate(req.body.email)) {
+                crypto.randomBytes(16, function (err, bytes) {
+                    if (err) {
+                        next(err);
+                    } else {
+                        var config = { '_id': {
+                            username: req.body.username,
+                            email: req.body.email
+                        } };
+                        config.salt = bytes.toString('utf8');
+                        config.hash = hash(req.body.password, config.salt);
+                        config.date = new Date();
+
+                        var user = new User(config);
+                        user.save(function (err, user) {
+                            if (err) {
+                                next(err);
+                            } else {
+                                req.session.isLoggedIn = true;
+                                req.session.user = {
+                                    username: user.username,
+                                    email: user.email
+                                };
+                                console.log("[MongoDB] new user %s created", user.username);
+                                res.redirect('/');
+                            }
+                        });
+                    }
+                });
+            } else {
+                res.render('signup', {invalid: true});
+            }
+        });
+    } else {
+        res.render('signup', {empty: true});
+    }
+};
+*/});
+
+var usermodeljs = multiline(function(){/*
+var mongoose = require('mongoose');
+
+var schema = new mongoose.Schema({
+    _id: {
+        username: {type: String, lowercase: true, trim: true, required: true},
+        email: {type: String, lowercase: true, trim: true, required: true}
+    },
+    salt: {type: String, required: true},
+    hash: {type: String, required: true},
+    date: {type: Date, required: true}
+});
+
+module.exports = mongoose.model('User', schema);
+*/});
+
+var userroutejs = multiline(function(){/*
+var controllers = require('../controllers');
+
+module.exports = function (app) {
+
+    app.get('/', function (req, res, next) {
+        res.render('home', {pageTitle: 'Home'});
+    });
+
+    app.get('/login', function (req, res, next) {
+        res.render('login', {pageTitle: 'Log In'});
+    });
+
+    app.post('/login', controllers.User.login);
+
+    app.get('/signup', function (req, res, next) {
+        res.render('signup', {pageTitle: 'Sign Up'});
+    });
+
+    app.post('/signup', controllers.User.signup);
+
+};
+*/});
 
 var print_help = function () {
     console.log("[ns] Usage: ns <command-name>");
@@ -183,28 +449,39 @@ var init = function (app_name) {
     fs.mkdirSync(app_dir);
     fs.writeFileSync(app_dir + "/.gitignore", gitignore);
     fs.writeFileSync(app_dir + "/app.js", appjs);
+    fs.writeFileSync(app_dir + "/ns-config.js", nsconfigjs.replace(/__name__/g, app_name));
 
     fs.writeFileSync(app_dir + "/package.json", packagejson.replace(/__name__/g, app_name));
     fs.writeFileSync(app_dir + "/README.md", app_name);
 
     fs.mkdirSync(app_dir + "/controllers");
-    fs.writeFileSync(app_dir + "/controllers/controllers.json", "[]");
+    fs.writeFileSync(app_dir + "/controllers/controllers.json", "['User']");
     fs.writeFileSync(app_dir + "/controllers/index.js", controllersjs);
+    fs.writeFileSync(app_dir + "/controllers/User.js", usercontrollerjs);
     
     fs.mkdirSync(app_dir + "/models");
-    fs.writeFileSync(app_dir + "/models/models.json", "[]");
+    fs.writeFileSync(app_dir + "/models/models.json", "['User']");
     fs.writeFileSync(app_dir + "/models/index.js", modelsjs);
+    fs.writeFileSync(app_dir + "/models/User.js", usermodeljs);
     
     fs.mkdirSync(app_dir + "/routes");
-    fs.writeFileSync(app_dir + "/routes/routes.json", "[]");
+    fs.writeFileSync(app_dir + "/routes/routes.json", "['User']");
     fs.writeFileSync(app_dir + "/routes/index.js", routesjs);
+    fs.writeFileSync(app_dir + "/routes/User.js", userroutejs);
 
-    fs.mkdirSync(app_dir + "/public");
-    fs.writeFileSync(app_dir + "/public/index.html", indexhtml);
-    fs.mkdirSync(app_dir + "/public/css");
-    fs.writeFileSync(app_dir + "/public/css/main.css", "");
-    fs.mkdirSync(app_dir + "/public/js");
-    fs.writeFileSync(app_dir + "/public/js/main.js", "");
+    fs.mkdirSync(app_dir + "/views");
+    fs.mkdirSync(app_dir + "/views/stylesheets");
+    fs.mkdirSync(app_dir + "/views/javascripts");
+    fs.writeFileSync(app_dir + "/views/stylesheets/main.css", maincss);
+    fs.writeFileSync(app_dir + "/views/javascripts/main.js", mainjs);
+    fs.writeFileSync(app_dir + "/views/layout.jade", layoutjade);
+    fs.writeFileSync(app_dir + "/views/home.jade", homejade);
+    fs.writeFileSync(app_dir + "/views/login.jade", loginjade);
+    fs.writeFileSync(app_dir + "/views/signup.jade", signupjade);
+
+    fs.mkdirSync(app_dir + "/utils");
+    fs.writeFileSync(app_dir + "/utils/logger.js", loggerjs);
+    fs.writeFileSync(app_dir + "/utils/hash.js", hashjs);
 
     console.log("[ns] initialized successfully! please cd into " + app_name + " and do npm install first");
 };
