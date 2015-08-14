@@ -51,8 +51,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 require('./routes')(app);
 
-mongoose.connect(process.env.MONGODB || 'mongodb://localhost:27017/test', function () {
-    console.log('[MongoDB] connected to mongodb')
+mongoose.connect(process.env.MONGODB || 'mongodb://localhost:27017/test', function (err) {
+    if (err) {
+        console.error('[MongoDB] failed to connect to mongodb');
+    } else {
+        console.log('[MongoDB] successfully connected to mongodb');
+    }
     app.listen(process.env.PORT || '8080', process.env.IP || '127.0.0.1', function () {
         console.log('[Server] listening on port %s', this.address().port);
     });
@@ -91,7 +95,13 @@ var indexhtml = multiline(function(){/*
     <link rel='stylesheet' type='text/css' href='css/main.css'>
 </head>
 <body>
-    <h1>Success</h1>
+    <h1>NS Set Up Success</h1>
+    <ul>
+        <li><b>ns init [app-name]</b> initializes the app with default package.json and file structure</li>
+        <li><b>ns new model [model-name]</b> creates a new mongoose schema</li>
+        <li><b>ns new route [route-name]</b> creates a new route with the corresponding controller</li>
+    </ul>
+    <div>For more, please visit <a href='https://github.com/TakLee96/node-starter' target='_blank'>here</a></div>
     <script type='text/javascript' src='js/main.js'></script>
 </body>
 </html>
@@ -130,18 +140,19 @@ exports.exampleHandler = function (request, response) {
 
 var packagejson = multiline(function(){/*
 {
-  "name": "",
+  "name": "__name__",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "node app.js"
+    "test": "node app.js",
+    "start": "node app.js"
   },
   "repository": {
     "type": "git",
     "url": ""
   },
-  "keywords": [],
+  "keywords": ["__name__"],
   "author": "",
   "license": "MIT",
   "bugs": {
@@ -173,8 +184,7 @@ var init = function (app_name) {
     fs.writeFileSync(app_dir + "/.gitignore", gitignore);
     fs.writeFileSync(app_dir + "/app.js", appjs);
 
-    var pkg = JSON.parse(packagejson); pkg.name = app_name;
-    fs.writeFileSync(app_dir + "/package.json", JSON.stringify(pkg));
+    fs.writeFileSync(app_dir + "/package.json", packagejson.replace(/__name__/g, app_name));
     fs.writeFileSync(app_dir + "/README.md", app_name);
 
     fs.mkdirSync(app_dir + "/controllers");
