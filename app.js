@@ -54,7 +54,6 @@ mongoose.connect(config.mongodb, function (err) {
     app.set('view engine', 'jade');
 
     app.use(logger());
-    app.use(express.static('public'));
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use(session({
@@ -73,6 +72,8 @@ mongoose.connect(config.mongodb, function (err) {
     // app.use(...)
     // Configure more middlewares above
 
+    require('./routes')(app);
+
     app.use(function (req, res, next) {
         res.status(404).end("Resource for " + req.method + " " + req.url + " not found");
     });
@@ -80,8 +81,6 @@ mongoose.connect(config.mongodb, function (err) {
         console.error(err.stack);
         res.status(500).end("Oops... The programmer screws up something...");
     });
-
-    require('./routes')(app);
 
     app.listen(config.port, config.ip, function () {
         console.log('[Server] listening on port %s\n', this.address().port);
@@ -212,7 +211,7 @@ module.exports = {
     name: '__name__',
     port: process.env.PORT || 8080,
     ip: process.env.IP || '127.0.0.1',
-    mongodb: process.env.MONGODB || 'mongodb://localhost:27017/__name__'
+    mongodb: 'mongodb://localhost:27017/__name__'
 };
 */});
 
@@ -260,7 +259,6 @@ extends layout
 
 block content
     form(method='POST', action='/login')
-        h2 Log In
         if empty
             .error Empty Username/Password!
         if incorrect
@@ -273,7 +271,7 @@ block content
                 input#username(name='username', required=true)
             li
                 label(for='password') Password
-                input#password(name='password', required=true)
+                input#password(name='password', type='password', required=true)
         input(type='submit', value='Log In')
 */});
 
@@ -282,7 +280,6 @@ extends layout
 
 block content
     form(method='POST', action='/signup')
-        h2 Sign Up
         if exists
             .error
                 | That user already exists. Are you trying to 
@@ -330,21 +327,21 @@ exports.login = function (req, res, next) {
                 next(err);
             } else if (user) {
                 if (user.hash !== hash(req.body.password, user.salt)) {
-                    res.render('login', {incorrect: true});
+                    res.render('login', {incorrect: true, pageTitle: 'Log In'});
                 } else {
-                    res.session.isLoggedIn = true;
-                    res.session.user = {
-                        username: user.username,
-                        email: user.email
+                    req.session.isLoggedIn = true;
+                    req.session.user = {
+                        username: user._id.username,
+                        email: user._id.email
                     };
                     res.redirect('/');
                 }
             } else {
-                res.render('login', {notExists: true});
+                res.render('login', {notExists: true, pageTitle: 'Log In'});
             }
         });
     } else {
-        res.render('login', {empty: true});
+        res.render('login', {empty: true, pageTitle: 'Log In'});
     }
 };
 
@@ -354,7 +351,7 @@ exports.signup = function (req, res, next) {
             if (err) {
                 next(err)
             } else if (user) {
-                res.render('signup', {exists: true});
+                res.render('signup', {exists: true, pageTitle: 'Sign Up'});
             } else if (validator.validate(req.body.email)) {
                 crypto.randomBytes(16, function (err, bytes) {
                     if (err) {
@@ -369,14 +366,14 @@ exports.signup = function (req, res, next) {
                         config.date = new Date();
 
                         var user = new User(config);
-                        user.save(function (err, user) {
+                        user.save(function (err) {
                             if (err) {
                                 next(err);
                             } else {
                                 req.session.isLoggedIn = true;
                                 req.session.user = {
-                                    username: user.username,
-                                    email: user.email
+                                    username: config._id.username,
+                                    email: config._id.email
                                 };
                                 console.log("[MongoDB] new user %s created", user.username);
                                 res.redirect('/');
@@ -385,12 +382,18 @@ exports.signup = function (req, res, next) {
                     }
                 });
             } else {
-                res.render('signup', {invalid: true});
+                res.render('signup', {invalid: true, pageTitle: 'Sign Up'});
             }
         });
     } else {
-        res.render('signup', {empty: true});
+        res.render('signup', {empty: true, pageTitle: 'Sign Up'});
     }
+};
+
+exports.logout = function (req, res, next) {
+    req.session.isLoggedIn = false;
+    req.session.user = null;
+    res.redirect('/');
 };
 */});
 
@@ -431,6 +434,8 @@ module.exports = function (app) {
 
     app.post('/signup', controllers.User.signup);
 
+    app.get('/logout', controllers.User.logout);
+
 };
 */});
 
@@ -455,17 +460,17 @@ var init = function (app_name) {
     fs.writeFileSync(app_dir + "/README.md", app_name);
 
     fs.mkdirSync(app_dir + "/controllers");
-    fs.writeFileSync(app_dir + "/controllers/controllers.json", "['User']");
+    fs.writeFileSync(app_dir + "/controllers/controllers.json", "[\"User\"]");
     fs.writeFileSync(app_dir + "/controllers/index.js", controllersjs);
     fs.writeFileSync(app_dir + "/controllers/User.js", usercontrollerjs);
     
     fs.mkdirSync(app_dir + "/models");
-    fs.writeFileSync(app_dir + "/models/models.json", "['User']");
+    fs.writeFileSync(app_dir + "/models/models.json", "[\"User\"]");
     fs.writeFileSync(app_dir + "/models/index.js", modelsjs);
     fs.writeFileSync(app_dir + "/models/User.js", usermodeljs);
     
     fs.mkdirSync(app_dir + "/routes");
-    fs.writeFileSync(app_dir + "/routes/routes.json", "['User']");
+    fs.writeFileSync(app_dir + "/routes/routes.json", "[\"User\"]");
     fs.writeFileSync(app_dir + "/routes/index.js", routesjs);
     fs.writeFileSync(app_dir + "/routes/User.js", userroutejs);
 
